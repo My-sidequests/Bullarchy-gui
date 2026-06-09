@@ -1,9 +1,9 @@
-//! `update` — reinstall Bullarchy from the source repository.
+//! `update` — reinstall Bullarchy GUI from the source repository.
 
-pub const DEFAULT_REPO: &str = "https://github.com/My-sidequests/Bullarchy.git";
+pub const DEFAULT_REPO: &str = "https://github.com/My-sidequests/Bullarchy-gui.git";
 
 pub fn cmd_update() {
-    println!("Updating bullarchy...");
+    println!("Updating bullarchy-gui...");
 
     let remote = match remote_head(DEFAULT_REPO, "main") {
         Some(h) => h,
@@ -13,7 +13,7 @@ pub fn cmd_update() {
         }
     };
 
-    let installed = installed_hash("bullarchy", DEFAULT_REPO, "main");
+    let installed = installed_hash("bullarchy-gui", DEFAULT_REPO, "main");
 
     if installed.map_or(false, |h| remote.starts_with(&h)) {
         println!("Already up to date (commit: {}).", &remote[..8]);
@@ -21,7 +21,7 @@ pub fn cmd_update() {
     }
 
     let status = std::process::Command::new("cargo")
-        .args(["install", "--git", DEFAULT_REPO, "--branch", "main", "--force", "bullarchy"])
+        .args(["install", "--git", DEFAULT_REPO, "--branch", "main", "--force", "bullarchy-gui"])
         .status();
 
     match status {
@@ -32,8 +32,6 @@ pub fn cmd_update() {
 }
 
 /// Fetch the HEAD commit hash of `branch` from a remote git repository.
-/// Returns the full 40-character SHA, or None if git is unavailable or the
-/// repo cannot be reached.
 fn remote_head(repo: &str, branch: &str) -> Option<String> {
     let output = std::process::Command::new("git")
         .args(["ls-remote", repo, &format!("refs/heads/{}", branch)])
@@ -46,8 +44,6 @@ fn remote_head(repo: &str, branch: &str) -> Option<String> {
 }
 
 /// Read the commit hash for `package` as recorded in ~/.cargo/.crates2.json.
-/// Returns the short hash stored by cargo (e.g. "aaec925f"), or None if not
-/// found or the file cannot be parsed.
 fn installed_hash(package: &str, repo: &str, branch: &str) -> Option<String> {
     let cargo_home = std::env::var("CARGO_HOME")
         .map(std::path::PathBuf::from)
@@ -58,8 +54,8 @@ fn installed_hash(package: &str, repo: &str, branch: &str) -> Option<String> {
 
     let crates2 = std::fs::read_to_string(cargo_home.join(".crates2.json")).ok()?;
 
-    let branch_tag = format!("branch={}", branch);
     let repo_fragment = repo.trim_end_matches(".git");
+    let branch_tag = format!("branch={}", branch);
 
     for line in crates2.lines() {
         if line.contains(package)
