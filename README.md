@@ -2,8 +2,6 @@
 
 A graphical interface for the [Bullarchy](https://github.com/My-sidequests/Bullarchy) toolchain — the project manager and transpiler CLI for the [Bullang](https://github.com/My-sidequests/Bullang) language.
 
-Bullarchy GUI exposes all six commands (`init`, `convert`, `fmt`, `check`, `editor-setup`, `update`) through a local web interface with a cosmic dark theme.
-
 ---
 
 ## How it works
@@ -28,16 +26,32 @@ The browser will open automatically. The server stays running until you close th
 
 ---
 
-## Commands
+## Interface
 
-| Command        | Description |
-|---------------|-------------|
-| `init`         | Scaffold a new Bullang project (depth-based or blueprint) |
-| `convert`      | Transpile a `.bu` project or single file to rs / py / c / cpp / go |
-| `fmt`          | Reformat all `.bu` files to canonical style |
-| `check`        | Validate, type-check, and verify formatting |
-| `editor-setup` | Write LSP configs for Neovim, Vim, Helix, Emacs |
-| `update`       | Reinstall Bullarchy GUI from the latest commit |
+The home screen presents five cards arranged in two rows.
+
+**Top row**
+
+| Card | What it does |
+|---|---|
+| **init** | Scaffold a new Bullang project — depth-based or from a blueprint file |
+| **convert** | Transpile a `.bu` project or single file to rs / py / c / cpp / go |
+| **blueprint** | Design and save a `blueprint.bu` file in an interactive split-pane editor |
+
+**Bottom row**
+
+| Card | What it does |
+|---|---|
+| **control** | Expands into two sub-commands: **check** (validate + type-check + format drift) and **fmt** (reformat all `.bu` files, with optional dry-run) |
+| **options** | Expands into two sub-commands: **editor-setup** (write LSP configs for Neovim, Vim, Helix, Emacs) and **update** (reinstall from the latest commit) |
+
+### Blueprint editor
+
+The blueprint panel is a split-pane editor modelled after Obsidian:
+
+- **Left pane** — raw `blueprint.bu` textarea with live syntax validation. A `✓ valid` / `✗ error` indicator updates as you type.
+- **Right pane** — live tree preview showing the project structure inferred from what you've written (folders, files, functions, goal strings).
+- **Save bar** — type any absolute path and click **Save blueprint** to write the file to disk. Parent directories are created automatically.
 
 ---
 
@@ -46,26 +60,38 @@ The browser will open automatically. The server stays running until you close th
 ```
 bullarchy-gui/
 ├── src/
-│   ├── main.rs          # axum server, embedded frontend
-│   ├── routes.rs        # HTTP handlers — one per command
-│   ├── cmd/             # command logic (mirrored from bullarchy)
-│   ├── build.rs         # transpiler pass
-│   ├── codegen/         # 5 language backends
-│   ├── init/            # project scaffolding + blueprint parser
-│   ├── validator/       # structural + parse validation
-│   └── ...              # shared modules
+│   ├── main.rs            # axum server, embedded frontend, route registration
+│   ├── routes.rs          # HTTP handlers — one per command + blueprint save
+│   ├── cmd/               # command logic (mirrored from Bullarchy)
+│   ├── build.rs           # transpiler pass
+│   ├── codegen/           # 5 language backends
+│   ├── init/              # project scaffolding + blueprint parser
+│   ├── validator/         # structural + parse validation
+│   └── ...                # shared modules
 └── frontend/
-    ├── index.html       # app shell
-    ├── style.css        # cosmic dark theme
-    └── app.js           # panel logic, star field, API calls
+    ├── index.html         # app shell
+    ├── style.css          # cosmic dark theme (deep blue / nebula)
+    └── app.js             # panel logic, blueprint editor, star field, API calls
 ```
 
-The frontend is embedded into the binary at compile time via `include_str!` — no separate file serving needed after installation.
+The frontend is embedded into the binary at compile time via `include_str!` — no separate file serving is needed after installation.
+
+### API endpoints
+
+| Method | Path | Handler |
+|---|---|---|
+| `POST` | `/api/init` | `handle_init` |
+| `POST` | `/api/convert` | `handle_convert` |
+| `POST` | `/api/fmt` | `handle_fmt` |
+| `POST` | `/api/check` | `handle_check` |
+| `POST` | `/api/editor-setup` | `handle_editor_setup` |
+| `POST` | `/api/update` | `handle_update` |
+| `POST` | `/api/blueprint/save` | `handle_blueprint_save` |
 
 ---
 
 ## Relationship to Bullarchy (terminal)
 
-Bullarchy GUI is a **separate repository** that mirrors the terminal version's command logic exactly. Both tools share the `bullang` library crate. The GUI wraps command output that would normally go to stdout/stderr and returns it as JSON to the browser.
+Bullarchy GUI is a **separate repository** that mirrors the terminal version's command logic exactly. Both tools share the `bullang` library crate. The GUI captures stdout/stderr from each command via an OS-level pipe redirect and returns the output as JSON to the browser.
 
 For the terminal version, see [Bullarchy](https://github.com/My-sidequests/Bullarchy).
