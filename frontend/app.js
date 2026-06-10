@@ -565,6 +565,29 @@ function buildUpdateSubPanel() {
 // ── blueprint panel ───────────────────────────────────────────────────────────
 
 function buildBlueprintPanel() {
+  // Delegate to blueprint.js module — mounted into panel body
+  const frag = document.createDocumentFragment();
+
+  const hint = infoBanner(
+    'Build your project blueprint visually. Click any node to edit it. Use + to add child folders or files. Save to disk when ready.'
+  );
+  frag.appendChild(hint);
+
+  const editorMount = document.createElement('div');
+  editorMount.className = 'bp-editor-mount';
+  frag.appendChild(editorMount);
+
+  const panel = makePanel('blueprint — visual editor', '🗺️', frag);
+
+  // Mount after panel is in DOM
+  requestAnimationFrame(() => {
+    import('/blueprint.js').then(m => m.mountBlueprint(editorMount));
+  });
+
+  return panel;
+}
+
+function buildBlueprintPanel_UNUSED() {
   const frag = document.createDocumentFragment();
 
   const hintBanner = infoBanner(
