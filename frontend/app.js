@@ -558,7 +558,12 @@ function buildUpdateSubPanel() {
   const { wrap: cWrap, pre } = consoleEl();
 
   [banner, btn, cWrap].forEach(el => wrap.appendChild(el));
-  btn.addEventListener('click', () => runCmd('/api/update', {}, btn, pre));
+  btn.addEventListener('click', async () => {
+    const label = btn.textContent;
+    btn.textContent = 'Please wait…';
+    await runCmd('/api/update', {}, btn, pre);
+    btn.textContent = label;
+  });
   return wrap;
 }
 
