@@ -155,76 +155,11 @@ pub async fn handle_editor_setup() -> impl IntoResponse {
 // and collect the output after it exits.
 
 pub async fn handle_update() -> impl IntoResponse {
-    let repo = crate::cmd::cmd_update::DEFAULT_REPO;
-
-    let output = tokio::task::spawn_blocking(move || {
-        // 1. Check remote hash
-        let remote = match remote_head(repo, "main") {
-            Some(h) => h,
-            None => return "Could not reach repository. Check your internet connection.".to_string(),
-        };
-
-        // 2. Check installed hash
-        let installed = installed_hash("bullarchy-gui", repo, "main");
-        if installed.map_or(false, |h| remote.starts_with(&h)) {
-            return format!("Already up to date (commit: {}).", &remote[..8]);
-        }
-
-        // 3. Run cargo install, collecting combined output
-        let result = std::process::Command::new("cargo")
-            .args(["install", "--git", repo, "--branch", "main", "--force", "bullarchy-gui"])
-            .output();
-
-        match result {
-            Ok(out) => {
-                let mut buf = String::new();
-                buf.push_str(&String::from_utf8_lossy(&out.stdout));
-                buf.push_str(&String::from_utf8_lossy(&out.stderr));
-                if out.status.success() {
-                    buf.push_str("\nUpdate complete.");
-                } else {
-                    buf.push_str(&format!("\ncargo install exited with {}.", out.status));
-                }
-                buf
-            }
-            Err(e) => format!("Failed to run cargo: {}.", e),
-        }
-    }).await.unwrap_or_else(|_| "Internal error running update.".to_string());
+    let output = tokio::task::spawn_blocking(|| {
+        capture(|| { crate::cmd::cmd_update(); })
+    }).await.unwrap_or_default();
 
     ok(output)
-}
-
-fn remote_head(repo: &str, branch: &str) -> Option<String> {
-    let output = std::process::Command::new("git")
-        .args(["ls-remote", repo, &format!("refs/heads/{}", branch)])
-        .output().ok()?;
-    let stdout = String::from_utf8(output.stdout).ok()?;
-    let hash = stdout.split_whitespace().next()?;
-    if hash.len() == 40 { Some(hash.to_string()) } else { None }
-}
-
-fn installed_hash(package: &str, repo: &str, branch: &str) -> Option<String> {
-    let cargo_home = std::env::var("CARGO_HOME")
-        .map(PathBuf::from)
-        .unwrap_or_else(|_| {
-            PathBuf::from(std::env::var("HOME").unwrap_or_default()).join(".cargo")
-        });
-
-    let crates2 = std::fs::read_to_string(cargo_home.join(".crates2.json")).ok()?;
-    let repo_fragment = repo.trim_end_matches(".git");
-    let branch_tag = format!("branch={}", branch);
-
-    for line in crates2.lines() {
-        if line.contains(package) && line.contains(repo_fragment) && line.contains(&branch_tag) {
-            if let Some(hash_start) = line.rfind('#') {
-                let rest = &line[hash_start + 1..];
-                if let Some(hash_end) = rest.find('"') {
-                    return Some(rest[..hash_end].to_string());
-                }
-            }
-        }
-    }
-    None
 }
 
 // ── /api/blueprint/save ───────────────────────────────────────────────────────
