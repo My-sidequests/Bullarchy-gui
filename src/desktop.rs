@@ -10,7 +10,7 @@ use std::fs;
 
 // ── Embedded SVG icon ─────────────────────────────────────────────────────────
 
-const ICON_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+const ICON_SVG: &str = r##"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
   <rect width="256" height="256" rx="48" fill="#04060f"/>
   <rect width="256" height="256" rx="48" fill="url(#bg)"/>
   <defs>
@@ -43,7 +43,7 @@ const ICON_SVG: &str = r#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2
       <stop offset="100%" stop-color="#1a3a6e" stop-opacity="0.4"/>
     </linearGradient>
   </defs>
-</svg>"#;
+</svg>"##;
 
 // ── Marker ────────────────────────────────────────────────────────────────────
 
@@ -155,7 +155,7 @@ fn install_macos() -> Result<(), Box<dyn std::error::Error>> {
     fs::create_dir_all(&resources)?;
 
     // Info.plist
-    let plist = r#"<?xml version="1.0" encoding="UTF-8"?>
+    let plist = r##"<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -169,7 +169,7 @@ fn install_macos() -> Result<(), Box<dyn std::error::Error>> {
   <key>LSUIElement</key>              <false/>
   <key>NSHighResolutionCapable</key>  <true/>
 </dict>
-</plist>"#;
+</plist>"##;
     fs::write(contents.join("Info.plist"), plist)?;
 
     // SVG icon (macOS won't use it natively but keeps it for future icns conversion)
