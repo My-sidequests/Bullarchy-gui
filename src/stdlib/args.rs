@@ -50,6 +50,10 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         // os.Args[0] is the binary name; slice it off.
         Backend::Go => "os.Args[1:]".to_string(),
 
+        Backend::Java    => r#"((java.util.function.Supplier<java.util.ArrayList<String>>)(() -> {
+               java.util.ArrayList<String> __a = new java.util.ArrayList<>();
+               for (String __s : System.getProperty("sun.java.command","").split(" ")) __a.add(__s);
+               return __a; })).get()"#.to_string(),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::args' is not available for unknown backend '{kw}'"
         )),

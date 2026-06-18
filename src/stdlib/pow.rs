@@ -27,6 +27,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
             "func() int64 {{ return int64(math.Round(math.Pow(float64({0}), float64({1})))) }}()",
             p[0], p[1]
         ),
+        Backend::Java    => format!("(long)Math.pow((double){0}, (double){1})", p[0], p[1]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::pow' is not available for unknown backend '{}'", kw
         )),

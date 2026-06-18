@@ -14,6 +14,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         Backend::C       => format!("sqrt((double){})", p[0]),
         Backend::Cpp     => format!("std::sqrt({})", p[0]),
         Backend::Go      => format!("math.Sqrt(float64({}))", p[0]),
+        Backend::Java    => format!("Math.sqrt((double){})", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::sqrt' is not available for unknown backend '{}'", kw
         )),

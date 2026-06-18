@@ -34,6 +34,7 @@ static_cast<int64_t>(\
         // ── Go ───────────────────────────────────────────────────────────────
         Backend::Go => "time.Now().Unix()".to_string(),
 
+        Backend::Java    => format!("System.currentTimeMillis() / 1000L"),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::time' is not available for unknown backend '{kw}'"
         )),

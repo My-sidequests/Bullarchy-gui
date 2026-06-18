@@ -166,6 +166,28 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.Supplier<java.util.ArrayList<Long>>)(() -> {{ \
+               java.util.ArrayList<Long> __src = {arr}; \
+               int __n = __src.size(); \
+               if (__n <= 1) return new java.util.ArrayList<>(__src); \
+               long __off = Long.MIN_VALUE; \
+               long[] __a = new long[__n], __b = new long[__n]; \
+               for (int __i = 0; __i < __n; __i++) __a[__i] = __src.get(__i) - __off; \
+               for (int __sh = 0; __sh < 64; __sh += 8) {{ \
+                 int[] __cnt = new int[256]; \
+                 for (long __x : __a) __cnt[(int)((__x >> __sh) & 0xff)]++; \
+                 int __pre = 0; \
+                 for (int __d = 0; __d < 256; __d++) {{ int __t = __cnt[__d]; __cnt[__d] = __pre; __pre += __t; }} \
+                 for (long __x : __a) {{ int __d = (int)((__x >> __sh) & 0xff); __b[__cnt[__d]++] = __x; }} \
+                 long[] __tmp = __a; __a = __b; __b = __tmp; \
+               }} \
+               java.util.ArrayList<Long> __res = new java.util.ArrayList<>(__n); \
+               for (long __x : __a) __res.add(__x + __off); \
+               return __res; \
+             }})).get()",
+            arr = arr
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::radix_sort' is not available for unknown backend '{kw}'"
         )),

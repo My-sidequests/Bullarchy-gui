@@ -141,6 +141,27 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.Supplier<java.util.ArrayList<Long>>)(() -> {{ \
+               final java.util.function.Function<java.util.ArrayList<Long>, \
+                 java.util.ArrayList<Long>>[] __ref = new java.util.function.Function[1]; \
+               __ref[0] = (__v) -> {{ \
+                 if (__v.size() <= 1) return __v; \
+                 int __mid = __v.size() / 2; \
+                 java.util.ArrayList<Long> __l = __ref[0].apply(new java.util.ArrayList<>(__v.subList(0, __mid))); \
+                 java.util.ArrayList<Long> __r = __ref[0].apply(new java.util.ArrayList<>(__v.subList(__mid, __v.size()))); \
+                 java.util.ArrayList<Long> __out = new java.util.ArrayList<>(); \
+                 int __li = 0, __ri = 0; \
+                 while (__li < __l.size() && __ri < __r.size()) \
+                   __out.add(__l.get(__li) <= __r.get(__ri) ? __l.get(__li++) : __r.get(__ri++)); \
+                 while (__li < __l.size()) __out.add(__l.get(__li++)); \
+                 while (__ri < __r.size()) __out.add(__r.get(__ri++)); \
+                 return __out; \
+               }}; \
+               return __ref[0].apply(new java.util.ArrayList<>({arr})); \
+             }})).get()",
+            arr = arr
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::merge_sort' is not available for unknown backend '{kw}'"
         )),

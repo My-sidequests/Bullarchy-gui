@@ -126,6 +126,28 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.Supplier<java.util.ArrayList<Long>>)(() -> {{ \
+               java.util.function.Function<java.util.ArrayList<Long>, java.util.ArrayList<Long>> \
+               __qsort = null; \
+               final java.util.function.Function<java.util.ArrayList<Long>, \
+                 java.util.ArrayList<Long>>[] __ref = new java.util.function.Function[1]; \
+               __ref[0] = (__v) -> {{ \
+                 if (__v.size() <= 1) return __v; \
+                 long __piv = __v.get(0); \
+                 java.util.ArrayList<Long> __left = new java.util.ArrayList<>(); \
+                 java.util.ArrayList<Long> __right = new java.util.ArrayList<>(); \
+                 for (int __i = 1; __i < __v.size(); __i++) \
+                   (__v.get(__i) <= __piv ? __left : __right).add(__v.get(__i)); \
+                 java.util.ArrayList<Long> __out = __ref[0].apply(__left); \
+                 __out.add(__piv); \
+                 __out.addAll(__ref[0].apply(__right)); \
+                 return __out; \
+               }}; \
+               return __ref[0].apply(new java.util.ArrayList<>({arr})); \
+             }})).get()",
+            arr = arr
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::quick_sort' is not available for unknown backend '{kw}'"
         )),

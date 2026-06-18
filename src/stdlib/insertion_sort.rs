@@ -123,6 +123,22 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.Supplier<java.util.ArrayList<Long>>)(() -> {{ \
+               java.util.ArrayList<Long> __v = new java.util.ArrayList<>({arr}); \
+               int __n = __v.size(); \
+               for (int __i = 1; __i < __n; __i++) {{ \
+                 long __key = __v.get(__i); \
+                 int __j = __i - 1; \
+                 while (__j >= 0 && __v.get(__j) > __key) {{ \
+                   __v.set(__j + 1, __v.get(__j)); __j--; \
+                 }} \
+                 __v.set(__j + 1, __key); \
+               }} \
+               return __v; \
+             }})).get()",
+            arr = arr
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::insertion_sort' is not available for unknown backend '{kw}'"
         )),

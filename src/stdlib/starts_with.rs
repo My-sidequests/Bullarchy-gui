@@ -21,6 +21,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         ),
         Backend::Cpp     => format!("{0}.rfind({1}, 0) == 0", p[0], p[1]),
         Backend::Go      => format!("strings.HasPrefix({}, {})", p[0], p[1]),
+        Backend::Java    => format!("{0}.startsWith({1})", p[0], p[1]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::starts_with' is not available for unknown backend '{}'", kw
         )),

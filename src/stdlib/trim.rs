@@ -19,6 +19,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
             p[0]
         ),
         Backend::Go      => format!("strings.TrimSpace({})", p[0]),
+        Backend::Java    => format!("{}.trim()", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::trim' is not available for unknown backend '{}'", kw
         )),

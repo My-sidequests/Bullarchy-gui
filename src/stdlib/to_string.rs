@@ -14,6 +14,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         Backend::C       => format!("/* to_string: use sprintf for {} */", p[0]),
         Backend::Cpp     => format!("std::to_string({})", p[0]),
         Backend::Go      => format!("fmt.Sprintf(\"%v\", {})", p[0]),
+        Backend::Java    => format!("String.valueOf({})", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::to_string' is not available for unknown backend '{}'", kw
         )),

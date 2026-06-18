@@ -34,6 +34,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         // len() works for both string (byte count) and slice (element count).
         Backend::Go => format!("int64(len({}))", s),
 
+        Backend::Java    => format!("(long){}.length()", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::len' is not available for unknown backend '{kw}'"
         )),

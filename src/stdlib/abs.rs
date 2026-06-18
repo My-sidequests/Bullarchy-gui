@@ -17,6 +17,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
             "func() int64 {{ if {0} < 0 {{ return int64(-{0}) }}; return int64({0}) }}()",
             p[0]
         ),
+        Backend::Java    => format!("Math.abs({})", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::abs' is not available for unknown backend '{}'", kw
         )),

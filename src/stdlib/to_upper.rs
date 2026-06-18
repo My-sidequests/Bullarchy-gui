@@ -18,6 +18,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
             p[0]
         ),
         Backend::Go      => format!("strings.ToUpper({})", p[0]),
+        Backend::Java    => format!("{}.toUpperCase()", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::to_upper' is not available for unknown backend '{}'", kw
         )),

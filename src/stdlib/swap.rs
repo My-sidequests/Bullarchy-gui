@@ -48,6 +48,13 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
                {{ __sa := {a}; __sb := {b}; return __sb, __sa }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.Supplier<Object[]>)(() -> {{ \
+               var __sa = {a}; var __sb = {b}; \
+               return new Object[]{{__sb, __sa}}; \
+             }})).get()",
+            a = a, b = b
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::swap' is not available for unknown backend '{kw}'"
         )),

@@ -16,6 +16,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         Backend::C      => format!("exit({})", code),
         Backend::Cpp    => format!("std::exit({})", code),
         Backend::Go     => format!("os.Exit(int({}))", code),
+        Backend::Java    => format!("((java.lang.Runnable)(() -> System.exit((int)({}))).run())", code),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::exit' is not available for unknown backend '{kw}'"
         )),

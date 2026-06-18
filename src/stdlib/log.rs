@@ -16,6 +16,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         Backend::C      => format!("log((double){})", x),
         Backend::Cpp    => format!("std::log(static_cast<double>({}))", x),
         Backend::Go     => format!("math.Log(float64({}))", x),
+        Backend::Java    => format!("Math.log((double){})", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::log' is not available for unknown backend '{kw}'"
         )),

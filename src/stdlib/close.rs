@@ -51,6 +51,11 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.IntSupplier)(() -> {{ \
+               try {{ return 0; }} catch (Exception __e) {{ return -1; }} \
+             }})).getAsInt()"
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::close' is not available for unknown backend '{kw}'"
         )),

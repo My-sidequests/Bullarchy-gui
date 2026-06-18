@@ -16,6 +16,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         Backend::C      => format!("exp((double){})", x),
         Backend::Cpp    => format!("std::exp(static_cast<double>({}))", x),
         Backend::Go     => format!("math.Exp(float64({}))", x),
+        Backend::Java    => format!("Math.exp((double){})", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::exp' is not available for unknown backend '{kw}'"
         )),

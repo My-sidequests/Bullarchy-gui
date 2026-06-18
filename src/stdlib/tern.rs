@@ -24,6 +24,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         Backend::Go     => format!(
             "func() interface{{}} {{ if {v1} == {v2} {{ return {a} }}; return {b} }}()"
         ),
+        Backend::Java    => format!("(({v1}) == ({v2}) ? ({a}) : ({b}))", v1=v1, v2=v2, a=a, b=b),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::tern' is not available for unknown backend '{kw}'"
         )),

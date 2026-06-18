@@ -64,6 +64,16 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.IntSupplier)(() -> {{ \
+               try {{ \
+                 byte[] __b = {content}.getBytes(java.nio.charset.StandardCharsets.UTF_8); \
+                 System.out.print({content}); \
+                 return __b.length; \
+               }} catch (Exception __e) {{ return -1; }} \
+             }})).getAsInt()",
+            content = content
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::out' is not available for unknown backend '{kw}'"
         )),

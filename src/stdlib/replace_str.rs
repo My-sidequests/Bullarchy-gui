@@ -33,6 +33,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
             "strings.ReplaceAll({}, {}, {})",
             p[0], p[1], p[2]
         ),
+        Backend::Java    => format!("{0}.replace({1}, {2})", p[0], p[1], p[2]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::replace_str' is not available for unknown backend '{}'", kw
         )),

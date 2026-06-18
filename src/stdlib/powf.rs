@@ -18,6 +18,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         Backend::C       => format!("pow({}, {})", p[0], p[1]),
         Backend::Cpp     => format!("std::pow({}, {})", p[0], p[1]),
         Backend::Go      => format!("math.Pow({}, {})", p[0], p[1]),
+        Backend::Java    => format!("Math.pow({}, {})", p[0], p[1]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::powf' is not available for unknown backend '{}'", kw
         )),

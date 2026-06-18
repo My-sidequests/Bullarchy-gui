@@ -43,6 +43,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
             ms
         ),
 
+        Backend::Java    => format!("((java.lang.Runnable)(() -> {{ try {{ Thread.sleep({ms}); }} catch (InterruptedException __e) {{ Thread.currentThread().interrupt(); }} }})).run()", ms = ms),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::sleep' is not available for unknown backend '{kw}'"
         )),

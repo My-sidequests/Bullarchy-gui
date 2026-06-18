@@ -96,6 +96,17 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.LongSupplier)(() -> {{ \
+               long[] __arr = new long[{arr}.size()]; \
+               for (int __i = 0; __i < {arr}.size(); __i++) __arr[__i] = {arr}.get(__i); \
+               if (__arr.length == 0) return Long.MAX_VALUE; \
+               long __m = __arr[0]; \
+               for (int __i = 1; __i < __arr.length; __i++) if (__arr[__i] > __m) __m = __arr[__i]; \
+               return __m; \
+             }})).getAsLong()",
+            arr = arr
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::max' is not available for unknown backend '{kw}'"
         )),

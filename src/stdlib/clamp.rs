@@ -28,6 +28,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()",
             p[0], p[1], p[2]
         ),
+        Backend::Java    => format!("(({0}) < ({1}) ? ({1}) : (({0}) > ({2}) ? ({2}) : ({0})))", p[0], p[1], p[2]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::clamp' is not available for unknown backend '{}'", kw
         )),

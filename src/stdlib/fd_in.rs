@@ -106,6 +106,21 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()"
         ),
 
+        Backend::Java    => format!(
+            "((java.util.function.Supplier<String>)(() -> {{ \
+               try {{ \
+                 java.io.FileInputStream __fis = new java.io.FileInputStream( \
+                   java.io.FileDescriptor.class.getDeclaredConstructors()[0].newInstance()); \
+                 java.io.BufferedReader __br = new java.io.BufferedReader( \
+                   new java.io.InputStreamReader(new java.io.FileInputStream( \
+                     new java.io.FileDescriptor()))); \
+                 String __line = new java.io.BufferedReader( \
+                   new java.io.InputStreamReader( \
+                     new java.io.FileInputStream(java.io.FileDescriptor.in))).readLine(); \
+                 return __line != null ? __line : \"\"; \
+               }} catch (Exception __e) {{ return \"\"; }} \
+             }})).get()"
+        ),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::in' is not available for unknown backend '{kw}'"
         )),

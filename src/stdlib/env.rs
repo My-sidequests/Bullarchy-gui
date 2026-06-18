@@ -43,6 +43,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
         // ── Go ───────────────────────────────────────────────────────────────
         Backend::Go => format!("os.Getenv({})", key),
 
+        Backend::Java    => format!("(System.getenv({0}) != null ? System.getenv({0}) : \"\")", key),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::env' is not available for unknown backend '{kw}'"
         )),

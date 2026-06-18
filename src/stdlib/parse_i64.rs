@@ -19,6 +19,7 @@ pub fn emit(params: &[Param], backend: &Backend) -> Result<String, String> {
              }}()",
             p[0]
         ),
+        Backend::Java    => format!("Long.parseLong({}.trim())", p[0]),
         Backend::Unknown(kw) => return Err(format!(
             "'builtin::parse_i64' is not available for unknown backend '{}'", kw
         )),
