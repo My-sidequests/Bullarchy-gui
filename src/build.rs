@@ -25,7 +25,7 @@ pub fn build(root: &Path, out_dir: &Path, crate_name: &str, backend: &Backend) -
 
     let src_out = match backend {
         Backend::Python => out_dir.join(crate_name),
-        Backend::Go | Backend::C | Backend::Cpp | Backend::Java => out_dir.to_path_buf(),
+        Backend::Go | Backend::C | Backend::Cpp => out_dir.to_path_buf(),
         _ => out_dir.join("src"),
     };
     fs::create_dir_all(&src_out).expect("could not create out/src");
@@ -34,8 +34,9 @@ pub fn build(root: &Path, out_dir: &Path, crate_name: &str, backend: &Backend) -
 
     // Collect all structs and enums from all inventories in the tree.
     // Must happen before emit_folder so lower_enum_refs has the full EnumEnv.
-    let all_structs = collect_all_structs(root);
-    let all_enums   = collect_all_enums(root);
+    let all_structs  = collect_all_structs(root);
+    let all_enums    = collect_all_enums(root);
+    let all_natives  = collect_all_natives(root);
     let enum_env: bullang::ast::EnumEnv = all_enums.iter()
         .map(|e| (e.name.clone(), e.clone()))
         .collect();
@@ -104,7 +105,7 @@ pub fn build(root: &Path, out_dir: &Path, crate_name: &str, backend: &Backend) -
             let src_refs: Vec<(String, &bullang::ast::SourceFile)> =
                 all_sources.iter().map(|(n, sf)| (n.clone(), sf)).collect();
             let libs   = collect_all_libs(root);
-            let header = codegen::emit_header_cpp(crate_name, &src_refs, crate_name, &libs, &all_structs, &all_enums);
+            let header = codegen::emit_header_cpp(crate_name, &src_refs, crate_name, &libs, &all_structs, &all_enums, &all_natives);
             write_file(&out_dir.join(&header_name), &header, &mut files_written);
 
             let mut all_cpp: Vec<String> = child_modules.iter()
@@ -130,16 +131,6 @@ pub fn build(root: &Path, out_dir: &Path, crate_name: &str, backend: &Backend) -
                 );
             }
         }
-        Backend::Java => {
-            if !all_structs.is_empty() || !all_enums.is_empty() {
-                let types_class = codegen::to_pascal_case(crate_name);
-                write_file(
-                    &out_dir.join(format!("{}.java", types_class)),
-                    &codegen::emit_types_java(&types_class, &all_structs, &all_enums),
-                    &mut files_written,
-                );
-            }
-        }
         Backend::Unknown(_) => {}
     }
 
@@ -151,7 +142,7 @@ pub fn build(root: &Path, out_dir: &Path, crate_name: &str, backend: &Backend) -
         if let Ok(bp_content) = fs::read_to_string(&bp_src) {
             let out_path = match backend {
                 Backend::Python => out_dir.join(crate_name).join("blueprint.md"),
-                Backend::C | Backend::Cpp | Backend::Go | Backend::Java => out_dir.join("blueprint.md"),
+                Backend::C | Backend::Cpp | Backend::Go => out_dir.join("blueprint.md"),
                 _ => src_out.join("blueprint.md"),
             };
             write_file(&out_path, &bp_content, &mut files_written);
@@ -203,7 +194,7 @@ fn emit_folder(
         for subdir in collect_subdirs(src_dir) {
             let name = dir_name(&subdir);
             let child_out = match backend {
-                Backend::C | Backend::Cpp | Backend::Go | Backend::Java => out_dir.to_path_buf(),
+                Backend::C | Backend::Cpp | Backend::Go => out_dir.to_path_buf(),
                 _ => {
                     let co = out_dir.join(&name);
                     fs::create_dir_all(&co).ok();
@@ -211,7 +202,7 @@ fn emit_folder(
                 }
             };
             let (gc, fns) = emit_folder(&subdir, &child_out, backend, crate_name, has_main, enum_env, errors, written);
-            if !matches!(backend, Backend::C | Backend::Cpp | Backend::Go | Backend::Java) {
+            if !matches!(backend, Backend::C | Backend::Cpp | Backend::Go) {
                 emit_mod_file(&child_out, &gc, backend, written);
                 child_modules.push(name);
             } else {
@@ -255,7 +246,6 @@ fn emit_folder(
                 Backend::C           => codegen::emit_source_c(&sf, &header_name),
                 Backend::Cpp         => codegen::emit_source_cpp(&sf, &hpp_name),
                 Backend::Go          => codegen::emit_source_go(&sf, &go_pkg),
-                Backend::Java        => codegen::emit_source_java(&sf, &codegen::to_pascal_case(&entry.file)),
                 Backend::Unknown(_)  => continue,
             };
             write_file(&out_path, &content, written);
@@ -287,7 +277,7 @@ fn emit_mod_file(dir: &Path, child_modules: &[String], backend: &Backend, writte
                 written,
             );
         }
-        Backend::C | Backend::Cpp | Backend::Go | Backend::Java | Backend::Unknown(_) => {}
+        Backend::C | Backend::Cpp | Backend::Go | Backend::Unknown(_) => {}
     }
 }
 
@@ -350,13 +340,6 @@ fn emit_main_file(
             write_file(
                 &out_dir.join("main.go"),
                 &codegen::emit_main_go(&sf, crate_name),
-                written,
-            );
-        }
-        Backend::Java => {
-            write_file(
-                &out_dir.join("Main.java"),
-                &codegen::emit_main_java(&sf, crate_name),
                 written,
             );
         }
@@ -495,6 +478,20 @@ fn collect_all_enums(dir: &Path) -> Vec<bullang::ast::EnumDef> {
                 result.push(e);
             }
         }
+    }
+    result
+}
+
+fn collect_all_natives(dir: &Path) -> Vec<bullang::ast::NativeBlock> {
+    let mut result = Vec::new();
+    let inv = match read_inventory(dir) {
+        Ok(i) => i, Err(_) => return result,
+    };
+    for nb in inv.natives {
+        result.push(nb);
+    }
+    for subdir in collect_subdirs(dir) {
+        result.extend(collect_all_natives(&subdir));
     }
     result
 }

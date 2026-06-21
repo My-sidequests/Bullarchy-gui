@@ -67,6 +67,7 @@ pub fn emit_header_cpp(
     includes:     &[String],
     structs:      &[bullang::ast::StructDef],
     enums:        &[bullang::ast::EnumDef],
+    natives:      &[bullang::ast::NativeBlock],
 ) -> String {
     let guard = format!("{}_HPP", module_name.to_uppercase().replace('-', "_"));
     let mut out = String::new();
@@ -100,6 +101,20 @@ pub fn emit_header_cpp(
     for s in structs {
         out.push_str(&emit_struct_cpp(s));
         out.push('\n');
+    }
+
+    // Verbatim native blocks (e.g. @cpp class definitions from inventory.bu)
+    for nb in natives {
+        if nb.backend == bullang::ast::Backend::Cpp {
+            out.push_str("// @cpp native block\n");
+            out.push_str(nb.code.trim());
+            out.push_str("\n\n");
+        } else {
+            out.push_str(&format!(
+                "// WARNING: @{} native block skipped in C++ header\n\n",
+                nb.backend.escape_keyword()
+            ));
+        }
     }
 
     for (filename, sf) in source_files {
