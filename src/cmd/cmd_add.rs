@@ -15,6 +15,9 @@ use std::process::Command;
 const REGISTRY_URL: &str =
     "https://raw.githubusercontent.com/The-Bullang-Foundation/Bullarchy-registery/main/registry.json";
 
+const BULLARCHY_REPO: &str =
+    "https://github.com/The-Bullang-Foundation/Bullarchy.git";
+
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 pub fn cmd_add(args: &[&str]) {
@@ -25,7 +28,6 @@ pub fn cmd_add(args: &[&str]) {
 
     let raw = args[0];
 
-    // Split on '@' for optional version pin: name@version or url@version
     let (source, version) = match raw.splitn(2, '@').collect::<Vec<_>>().as_slice() {
         [s, v] => (s.to_string(), Some(v.to_string())),
         [s]    => (s.to_string(), None),
@@ -108,13 +110,24 @@ fn install_from_registry(name: &str, version: Option<&str>) {
         None    => { eprintln!("  Registry entry for '{}' has no git URL.", name); return; }
     };
 
-    install_from_url(&git_url, version, Some(name));
+    // Check if this package is a Cargo feature lib (has a "feature" field)
+    let cargo_feature = meta["feature"].as_str().map(|s| s.to_string());
+
+    install_from_url_with_feature(&git_url, version, Some(name), cargo_feature.as_deref());
 }
 
 // ── Install from URL ──────────────────────────────────────────────────────────
 
 fn install_from_url(git_url: &str, version: Option<&str>, package_name: Option<&str>) {
-    // Derive a local package name from the URL if not provided
+    install_from_url_with_feature(git_url, version, package_name, None);
+}
+
+fn install_from_url_with_feature(
+    git_url:      &str,
+    version:      Option<&str>,
+    package_name: Option<&str>,
+    cargo_feature: Option<&str>,
+) {
     let name = package_name.map(|s| s.to_string()).unwrap_or_else(|| {
         git_url
             .trim_end_matches('/')
@@ -125,7 +138,6 @@ fn install_from_url(git_url: &str, version: Option<&str>, package_name: Option<&
             .to_string()
     });
 
-    // Resolve which version to install
     let tag = match version {
         Some(v) => v.to_string(),
         None    => match latest_tag(git_url) {
@@ -142,32 +154,40 @@ fn install_from_url(git_url: &str, version: Option<&str>, package_name: Option<&
 
     if install_dir.exists() {
         println!("  '{}' {} is already installed.", name, tag);
+        // Still reinstall Bullarchy if this is a feature lib, in case it
+        // was installed before but the feature wasn't compiled in.
+        if let Some(feature) = cargo_feature {
+            reinstall_bullarchy_with_feature(&name, feature);
+        }
         return;
     }
 
     println!("  Installing {} {}...", name, tag);
 
-    fs::create_dir_all(&install_dir)
-        .expect("could not create package directory");
+    fs::create_dir_all(&install_dir).expect("could not create package directory");
 
-    // Clone at the specific tag, shallow for speed
     let status = Command::new("git")
         .args([
-            "clone",
-            "--depth", "1",
-            "--branch", &tag,
-            git_url,
-            install_dir.to_str().unwrap(),
+            "clone", "--depth", "1", "--branch", &tag,
+            git_url, install_dir.to_str().unwrap(),
         ])
         .status();
 
     match status {
         Ok(s) if s.success() => {
-            update_lockfile(&name, &tag, git_url);
+            update_lockfile(&name, &tag, git_url, cargo_feature);
             println!("  Installed {} {} → {}", name, tag, install_dir.display());
-            println!();
-            println!("  To use in a project, add to your inventory.bu:");
-            println!("    #lib: {};", name);
+
+            if let Some(feature) = cargo_feature {
+                println!();
+                println!("  '{}' is a Cargo-feature library.", name);
+                println!("  Reinstalling Bullarchy with --features {}...", feature);
+                reinstall_bullarchy_with_feature(&name, feature);
+            } else {
+                println!();
+                println!("  To use in a project, add to your inventory.bu:");
+                println!("    #lib: {};", name);
+            }
         }
         Ok(s) => {
             let _ = fs::remove_dir_all(&install_dir);
@@ -180,6 +200,58 @@ fn install_from_url(git_url: &str, version: Option<&str>, package_name: Option<&
     }
 }
 
+// ── Bullarchy reinstall with accumulated features ─────────────────────────────
+
+fn reinstall_bullarchy_with_feature(new_lib: &str, new_feature: &str) {
+    // Collect all currently installed feature libs from the lockfile
+    let features = accumulated_features(new_lib, new_feature);
+    let features_str = features.join(",");
+
+    println!("  Active features: {}", features_str);
+    println!("  Running: cargo install --git {} --features {} --force bullarchy", BULLARCHY_REPO, features_str);
+
+    let status = Command::new("cargo")
+        .args([
+            "install",
+            "--git", BULLARCHY_REPO,
+            "--features", &features_str,
+            "--force",
+            "bullarchy",
+        ])
+        .status();
+
+    match status {
+        Ok(s) if s.success() => println!("  Bullarchy reinstalled with {}.", features_str),
+        Ok(s)  => eprintln!("  Reinstall failed (exit {}).", s),
+        Err(e) => eprintln!("  Failed to run cargo: {}.", e),
+    }
+}
+
+/// Reads the lockfile and collects all feature names for installed libs,
+/// adding the new one. Deduplicates.
+fn accumulated_features(new_lib: &str, new_feature: &str) -> Vec<String> {
+    let lock_path = bull_home().join("bull.lock");
+    let mut features = vec![new_feature.to_string()];
+
+    if lock_path.exists() {
+        let content = fs::read_to_string(&lock_path).unwrap_or_default();
+        if let Ok(lock) = serde_json::from_str::<serde_json::Value>(&content) {
+            if let Some(obj) = lock.as_object() {
+                for (lib_name, meta) in obj {
+                    if lib_name == new_lib { continue; }
+                    if let Some(f) = meta["feature"].as_str() {
+                        if !features.contains(&f.to_string()) {
+                            features.push(f.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    features
+}
+
 // ── Registry fetching ─────────────────────────────────────────────────────────
 
 fn fetch_registry() -> Option<serde_json::Value> {
@@ -189,15 +261,12 @@ fn fetch_registry() -> Option<serde_json::Value> {
         .ok()?;
 
     if !output.status.success() { return None; }
-
     let text = String::from_utf8(output.stdout).ok()?;
     serde_json::from_str(&text).ok()
 }
 
 // ── Git helpers ───────────────────────────────────────────────────────────────
 
-/// Returns the latest semver git tag from a remote repo (e.g. "v1.2.3").
-/// Fetches all tags, filters those that match vX.Y.Z, returns the highest.
 fn latest_tag(repo: &str) -> Option<String> {
     let output = Command::new("git")
         .args(["ls-remote", "--tags", "--sort=-version:refname", repo])
@@ -205,21 +274,14 @@ fn latest_tag(repo: &str) -> Option<String> {
         .ok()?;
 
     let stdout = String::from_utf8(output.stdout).ok()?;
-
-    stdout
-        .lines()
-        .filter_map(|line| {
-            // Lines look like: <sha>\trefs/tags/v1.2.3
-            // Skip ^{} peeled tag entries
-            let tag_ref = line.split('\t').nth(1)?;
-            if tag_ref.ends_with("^{}") { return None; }
-            let tag = tag_ref.trim_start_matches("refs/tags/");
-            if is_semver(tag) { Some(tag.to_string()) } else { None }
-        })
-        .next()
+    stdout.lines().filter_map(|line| {
+        let tag_ref = line.split('\t').nth(1)?;
+        if tag_ref.ends_with("^{}") { return None; }
+        let tag = tag_ref.trim_start_matches("refs/tags/");
+        if is_semver(tag) { Some(tag.to_string()) } else { None }
+    }).next()
 }
 
-/// Basic semver check: vX, vX.Y, or vX.Y.Z where X/Y/Z are digits.
 fn is_semver(s: &str) -> bool {
     let s = s.trim_start_matches('v');
     s.split('.').all(|part| !part.is_empty() && part.chars().all(|c| c.is_ascii_digit()))
@@ -227,7 +289,7 @@ fn is_semver(s: &str) -> bool {
 
 // ── Lockfile ──────────────────────────────────────────────────────────────────
 
-fn update_lockfile(name: &str, version: &str, git_url: &str) {
+fn update_lockfile(name: &str, version: &str, git_url: &str, cargo_feature: Option<&str>) {
     let lock_path = bull_home().join("bull.lock");
 
     let mut lock: serde_json::Value = if lock_path.exists() {
@@ -240,6 +302,7 @@ fn update_lockfile(name: &str, version: &str, git_url: &str) {
     lock[name] = serde_json::json!({
         "version": version,
         "git":     git_url,
+        "feature": cargo_feature.unwrap_or(""),
     });
 
     fs::write(&lock_path, serde_json::to_string_pretty(&lock).unwrap())

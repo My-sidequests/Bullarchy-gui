@@ -1,8 +1,8 @@
 //! Standard library — universal builtin functions.
 //!
-//! Only builtins that can be implemented in ALL five backends are included.
-//! What remains is a clean set of 18 primitives: math, string, and algorithm
-//! builtins that are fully inlined — no call to an existing language primitive.
+//! The 11 math/sorting builtins (abs, pow, powf, sqrt, clamp, log, exp,
+//! insertion_sort, quick_sort, merge_sort, radix_sort) have been moved to
+//! the external `bull-mathlib` crate, installable via `bullarchy add mathlib`.
 //!
 //! Syntax in source files:  builtin::abs   builtin::to_upper   etc.
 //!
@@ -10,36 +10,25 @@
 //!   - `META : (&str, &str, &str)`  — (name, signature, description)
 //!   - `emit(params, backend)`      — code-generation entry point
 //!
-//! Backends: Rust, Python, C, C++, Go
+//! Backends: Rust, Python, C, C++, Go, Java
 
 use bullang::ast::{Backend, Param};
 
-mod abs;
 mod args;
-mod clamp;
 mod close;
 mod ends_with;
 mod env;
 mod exit;
-mod exp;
 mod fd_in;
 mod fd_out;
-mod insertion_sort;
 mod len;
-mod log;
 mod max;
-mod merge_sort;
 mod min;
 mod open;
 mod parse_i64;
-mod pow;
-mod powf;
-mod quick_sort;
-mod radix_sort;
 mod replace_str;
 mod run;
 mod sleep;
-mod sqrt;
 mod starts_with;
 mod swap;
 mod tern;
@@ -51,18 +40,10 @@ mod trim;
 
 // ── Universal builtin set ─────────────────────────────────────────────────────
 
-/// The 34 universal builtins — available in every backend.
 pub const BUILTINS: &[(&str, &str, &str)] = &[
-    // math
-    abs::META,
-    pow::META,
-    powf::META,
-    sqrt::META,
-    clamp::META,
+    // math (min/max stay in core stdlib)
     min::META,
     max::META,
-    log::META,
-    exp::META,
     // conditions
     tern::META,
     // string
@@ -77,10 +58,6 @@ pub const BUILTINS: &[(&str, &str, &str)] = &[
     len::META,
     // algorithms
     swap::META,
-    insertion_sort::META,
-    quick_sort::META,
-    merge_sort::META,
-    radix_sort::META,
     // io
     fd_in::META,
     fd_out::META,
@@ -95,58 +72,62 @@ pub const BUILTINS: &[(&str, &str, &str)] = &[
     sleep::META,
 ];
 
-/// Returns true if the name is a known universal builtin.
+/// Returns true if `name` is a known core builtin OR a mathlib builtin
+/// (when the mathlib feature is enabled).
 pub fn is_known_builtin(name: &str) -> bool {
-    BUILTINS.iter().any(|(n, _, _)| *n == name)
+    if BUILTINS.iter().any(|(n, _, _)| *n == name) {
+        return true;
+    }
+    #[cfg(feature = "mathlib")]
+    if bull_mathlib::is_known_builtin(name) {
+        return true;
+    }
+    false
 }
 
 // ── Dispatch ──────────────────────────────────────────────────────────────────
 
 pub fn emit_builtin(name: &str, params: &[Param], backend: &Backend) -> Result<String, String> {
-    if !is_known_builtin(name) {
-        return Err(format!(
-            "'builtin::{}' is not a known builtin. \
-             Run `bullang stdlib --list` to see available builtins.",
-            name
-        ));
-    }
+    // Try core stdlib first
     match name {
-        "abs"            => abs::emit(params, backend),
-        "pow"            => pow::emit(params, backend),
-        "powf"           => powf::emit(params, backend),
-        "sqrt"           => sqrt::emit(params, backend),
-        "clamp"          => clamp::emit(params, backend),
-        "min"            => min::emit(params, backend),
-        "max"            => max::emit(params, backend),
-        "log"            => log::emit(params, backend),
-        "exp"            => exp::emit(params, backend),
-        "tern"           => tern::emit(params, backend),
-        "to_upper"       => to_upper::emit(params, backend),
-        "to_lower"       => to_lower::emit(params, backend),
-        "trim"           => trim::emit(params, backend),
-        "starts_with"    => starts_with::emit(params, backend),
-        "ends_with"      => ends_with::emit(params, backend),
-        "replace_str"    => replace_str::emit(params, backend),
-        "to_string"      => to_string::emit(params, backend),
-        "parse_i64"      => parse_i64::emit(params, backend),
-        "len"            => len::emit(params, backend),
-        "swap"           => swap::emit(params, backend),
-        "insertion_sort" => insertion_sort::emit(params, backend),
-        "quick_sort"     => quick_sort::emit(params, backend),
-        "merge_sort"     => merge_sort::emit(params, backend),
-        "radix_sort"     => radix_sort::emit(params, backend),
-        "in"             => fd_in::emit(params, backend),
-        "out"            => fd_out::emit(params, backend),
-        "open"           => open::emit(params, backend),
-        "close"          => close::emit(params, backend),
-        "time"           => time::emit(params, backend),
-        "args"           => args::emit(params, backend),
-        "exit"           => exit::emit(params, backend),
-        "env"            => env::emit(params, backend),
-        "sleep"          => sleep::emit(params, backend),
-        "run"            => run::emit(params, backend),
-        _             => unreachable!(),
+        "min"            => return min::emit(params, backend),
+        "max"            => return max::emit(params, backend),
+        "tern"           => return tern::emit(params, backend),
+        "to_upper"       => return to_upper::emit(params, backend),
+        "to_lower"       => return to_lower::emit(params, backend),
+        "trim"           => return trim::emit(params, backend),
+        "starts_with"    => return starts_with::emit(params, backend),
+        "ends_with"      => return ends_with::emit(params, backend),
+        "replace_str"    => return replace_str::emit(params, backend),
+        "to_string"      => return to_string::emit(params, backend),
+        "parse_i64"      => return parse_i64::emit(params, backend),
+        "len"            => return len::emit(params, backend),
+        "swap"           => return swap::emit(params, backend),
+        "in"             => return fd_in::emit(params, backend),
+        "out"            => return fd_out::emit(params, backend),
+        "open"           => return open::emit(params, backend),
+        "close"          => return close::emit(params, backend),
+        "time"           => return time::emit(params, backend),
+        "args"           => return args::emit(params, backend),
+        "exit"           => return exit::emit(params, backend),
+        "env"            => return env::emit(params, backend),
+        "sleep"          => return sleep::emit(params, backend),
+        "run"            => return run::emit(params, backend),
+        _ => {}
     }
+
+    // Try mathlib (only compiled in when --features mathlib is set)
+    #[cfg(feature = "mathlib")]
+    if bull_mathlib::is_known_builtin(name) {
+        return bull_mathlib::emit(name, params, backend);
+    }
+
+    Err(format!(
+        "'builtin::{}' is not a known builtin. \
+         Run `bullang stdlib --list` to see available builtins. \
+         If this is a math/sort function, install mathlib: `bullarchy add mathlib`.",
+        name
+    ))
 }
 
 // ── Shared helpers (private to this module; accessible to all submodules) ─────
