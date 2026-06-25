@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [features]
 mathlib = ["dep:bull-mathlib"]
+netlib  = ["dep:bull-netlib"]
 
 [dependencies]
 axum        = { version = "0.8", features = ["tokio"] }
@@ -25,3 +26,4 @@ bullang     = { git = "https://github.com/The-Bullang-Foundation/Bullang.git" }
 pest        = "=2.7.14"
 pest_derive = "=2.7.14"
 bull-mathlib = { git = "https://github.com/The-Bullang-Foundation/Mathlib.git", optional = true }
+bull-netlib  = { git = "https://github.com/The-Bullang-Foundation/Netlib.git",  optional = true }

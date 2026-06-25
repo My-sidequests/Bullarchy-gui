@@ -82,6 +82,10 @@ pub fn is_known_builtin(name: &str) -> bool {
     if bull_mathlib::is_known_builtin(name) {
         return true;
     }
+    #[cfg(feature = "netlib")]
+    if bull_netlib::is_known_builtin(name) {
+        return true;
+    }
     false
 }
 
@@ -161,3 +165,9 @@ fn need<'a>(name: &str, params: &'a [Param], n: usize) -> Result<Vec<&'a str>, S
     }
     Ok(v)
 }
+
+    // Try netlib (only compiled in when --features netlib is set)
+    #[cfg(feature = "netlib")]
+    if bull_netlib::is_known_builtin(name) {
+        return bull_netlib::emit(name, params, backend);
+    }
