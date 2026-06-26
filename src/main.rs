@@ -76,6 +76,7 @@ async fn run_gui() {
         .route("/api/editor-setup",   post(routes::handle_editor_setup))
         .route("/api/update",         post(routes::handle_update))
         .route("/api/add",            post(routes::handle_add))
+        .route("/api/remove",         post(routes::handle_remove))
         .route("/api/blueprint/save", post(routes::handle_blueprint_save))
         .layer(cors);
 
@@ -139,11 +140,6 @@ fn run_cli_command(cmd: &str, rest: &[String]) {
         "add" => {
             let args: Vec<&str> = parts[1..].to_vec();
             cmd::cmd_add(&args);
-        }
-
-        "remove" => {
-            let args: Vec<&str> = parts[1..].to_vec();
-            cmd::cmd_remove(&args);
         }
 
         "--gui" => {
@@ -224,7 +220,6 @@ fn print_help() {
     println!("    add <name>                  Install a package from the registry");
     println!("    add <name>@<version>        Install a specific version");
     println!("    add <https://...>           Install from a git URL");
-    println!("    remove <name>               Uninstall a package");
     println!();
     println!("    fmt [folder] [--dry-run]    Format all .bu files to canonical style");
     println!("    check                       Validate, type-check, and check formatting");

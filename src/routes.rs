@@ -192,6 +192,27 @@ pub async fn handle_add(Json(req): Json<AddRequest>) -> impl IntoResponse {
     ok(output)
 }
 
+// ── /api/remove ───────────────────────────────────────────────────────────────
+
+#[derive(Deserialize)]
+pub struct RemoveRequest {
+    pub name: String,
+}
+
+pub async fn handle_remove(Json(req): Json<RemoveRequest>) -> impl IntoResponse {
+    let name = req.name.trim().to_string();
+    let output = tokio::task::spawn_blocking(move || {
+        capture(move || {
+            let name_static: &'static str =
+                Box::leak(name.into_boxed_str());
+            crate::cmd::cmd_remove(&[name_static]);
+        })
+    })
+    .await
+    .unwrap_or_default();
+    ok(output)
+}
+
 // ── /api/blueprint/save ───────────────────────────────────────────────────────
 
 #[derive(Deserialize)]

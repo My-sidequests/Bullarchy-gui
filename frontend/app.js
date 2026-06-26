@@ -503,14 +503,13 @@ function buildFmtSubPanel() {
 function buildAddPanel() {
   const body = document.createDocumentFragment();
 
-  // ── Package list section ──────────────────────────────────────────────────
+  // ── Install section ───────────────────────────────────────────────────────
   const listBanner = infoBanner(
     'Browse packages from the Bullarchy registry, or install directly from a git URL. ' +
     'Packages are installed globally to ~/.bull/packages/ and can be used in any Bullang project.'
   );
   body.appendChild(listBanner);
 
-  // Install by name or URL
   const sourceRow = document.createElement('div');
   sourceRow.className = 'field-row';
 
@@ -519,7 +518,7 @@ function buildAddPanel() {
   sourceIn.placeholder = 'package name, name@version, or https://...';
   sourceIn.className   = 'text-input';
 
-  sourceRow.appendChild(field('Package', sourceIn));
+  sourceRow.appendChild(field('Install', sourceIn));
   body.appendChild(sourceRow);
 
   const installBtn = runButton('Install');
@@ -533,10 +532,10 @@ function buildAddPanel() {
   });
 
   // Browse registry
-  const divider = document.createElement('div');
-  divider.className = 'nav-divider';
-  divider.style.margin = '1.2rem 0';
-  body.appendChild(divider);
+  const divider1 = document.createElement('div');
+  divider1.className = 'nav-divider';
+  divider1.style.margin = '1.2rem 0';
+  body.appendChild(divider1);
 
   const browseBtn = runButton('Browse registry');
   browseBtn.style.background = 'var(--surface)';
@@ -548,7 +547,36 @@ function buildAddPanel() {
     runCmd('/api/add', { source: '' }, browseBtn, browsePre);
   });
 
-  return makePanel('add — package manager', '📦', body);
+  // ── Remove section ────────────────────────────────────────────────────────
+  const divider2 = document.createElement('div');
+  divider2.className = 'nav-divider';
+  divider2.style.margin = '1.2rem 0';
+  body.appendChild(divider2);
+
+  const removeRow = document.createElement('div');
+  removeRow.className = 'field-row';
+
+  const removeIn = document.createElement('input');
+  removeIn.type        = 'text';
+  removeIn.placeholder = 'package name';
+  removeIn.className   = 'text-input';
+
+  removeRow.appendChild(field('Remove', removeIn));
+  body.appendChild(removeRow);
+
+  const removeBtn = runButton('Remove');
+  removeBtn.style.background = 'var(--danger, #c0392b)';
+  const { wrap: removeWrap, pre: removePre } = consoleEl();
+  body.appendChild(removeBtn);
+  body.appendChild(removeWrap);
+
+  removeBtn.addEventListener('click', () => {
+    const name = removeIn.value.trim();
+    if (!name) { removePre.textContent = '  Please enter a package name.'; return; }
+    runCmd('/api/remove', { name }, removeBtn, removePre);
+  });
+
+  return makePanel('packages — package manager', '📦', body);
 }
 
 function buildOptionsPanel() {
